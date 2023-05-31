@@ -4,6 +4,7 @@ Welcome to Refacer, a simple tool that allows you to create deepfakes with multi
 
 ## Demonstration
 
+[![Watch the video](https://img.youtube.com/vi/mXk1Ox7B244/maxresdefault.jpg)](https://youtu.be/mXk1Ox7B244)
 ![Refacer UI Image](https://github.com/xaviviro/refacer/blob/main/image.jpg)
 ![Refacer demo 1 Image](https://github.com/xaviviro/refacer/blob/main/demo-1.jpg)
 ![Refacer demo 2 Image](https://github.com/xaviviro/refacer/blob/main/demo-2.jpg)
