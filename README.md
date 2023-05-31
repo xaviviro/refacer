@@ -7,9 +7,6 @@ Welcome to Refacer, a simple tool that allows you to create deepfakes with multi
 
 
 [![Watch the video](https://img.youtube.com/vi/mXk1Ox7B244/maxresdefault.jpg)](https://youtu.be/mXk1Ox7B244)
-![Refacer UI Image](https://github.com/xaviviro/refacer/blob/main/image.jpg)
-![Refacer demo 1 Image](https://github.com/xaviviro/refacer/blob/main/demo-1.jpg)
-![Refacer demo 2 Image](https://github.com/xaviviro/refacer/blob/main/demo-2.jpg)
 
 ## Usage
 
@@ -31,4 +28,8 @@ If you have any questions or issues, feel free to [open an issue](https://github
 
 > :warning: This software is intended for educational and research purposes only. It is not intended for use in any malicious activities. The author of this software does not condone or support the use of this software for any harmful actions, including but not limited to identity theft, invasion of privacy, or defamation. Any use of this software for such purposes is strictly prohibited.
 
-> :warning: By using this software, you agree to abide by all applicable laws and to respect the rights and privacy of others.
+> :warning: You may only use this software with images for which you have the right to use and the necessary permissions. Any use of images without the proper rights and permissions is strictly prohibited.
+
+> :warning: The author of this software is not responsible for any misuse of the software or for any violation of rights and privacy resulting from such misuse.
+
+> :warning: By using this software, you agree to abide by all applicable laws, to respect the rights and privacy of others, and to use the software responsibly and ethically.
