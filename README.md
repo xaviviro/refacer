@@ -1,6 +1,6 @@
 # Refacer: One-Click Deepfake Multi-Face Swap Tool
 
-Welcome to Refacer, a simple tool that allows you to create deepfakes with multiple faces with just one click! Powered by the excellent [Insightface](https://github.com/deepinsight/insightface), Refacer requires no training - just one photo and you're ready to go.
+Refacer, a simple tool that allows you to create deepfakes with multiple faces with just one click! Powered by the excellent [Insightface](https://github.com/deepinsight/insightface), Refacer requires no training - just one photo and you're ready to go.
 
 ## Demonstration
 [Watch demo video on Youtube](https://youtu.be/mXk1Ox7B244)
@@ -31,5 +31,7 @@ If you have any questions or issues, feel free to [open an issue](https://github
 > :warning: You may only use this software with images for which you have the right to use and the necessary permissions. Any use of images without the proper rights and permissions is strictly prohibited.
 
 > :warning: The author of this software is not responsible for any misuse of the software or for any violation of rights and privacy resulting from such misuse.
+
+> :warning: To prevent misuse, the software contains an integrated protective mechanism that prevents it from working with illegal or similar types of media.
 
 > :warning: By using this software, you agree to abide by all applicable laws, to respect the rights and privacy of others, and to use the software responsibly and ethically.
