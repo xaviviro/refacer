@@ -14,7 +14,7 @@ Refacer, a simple tool that allows you to create deepfakes with multiple faces w
 [![Watch the video](https://img.youtube.com/vi/mXk1Ox7B244/maxresdefault.jpg)](https://youtu.be/mXk1Ox7B244)
 
 
-## System Compatibility and Requirements
+## System Compatibility
 
 Refacer has been thoroughly tested on the following operating systems:
 
