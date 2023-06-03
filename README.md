@@ -27,14 +27,54 @@ The application is compatible with both CPU and GPU (Nvidia CUDA) environments, 
 Please note, we do not recommend using `onnxruntime-silicon` on MacOSX due to an apparent issue with memory management. If you manage to compile `onnxruntime` for Silicon, the program is prepared to use CoreML.
 
 
+## Installation
+
+Refacer has been tested and is known to work with Python 3.10.9, but it is likely to work with other Python versions as well. It is recommended to use a virtual environment for setting up and running the project to avoid potential conflicts with other Python packages you may have installed.
+
+Follow these steps to install Refacer:
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/xaviviro/refacer.git
+    cd refacer
+    ```
+
+2. Download the Insightface model:
+   You can manually download the model created by Insightface from this [link](https://huggingface.co/deepinsight/inswapper/resolve/main/inswapper_128.onnx) and add it to the project folder. Alternatively, if you have `wget` installed, you can use the following command:
+    ```bash
+    wget --content-disposition https://huggingface.co/deepinsight/inswapper/resolve/main/inswapper_128.onnx
+    ```
+
+3. Install dependencies:
+
+    * For CPU (compatible with Windows, MacOSX, and Linux):
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    * For GPU (compatible with Windows and Linux only, requires a NVIDIA GPU with CUDA and its libraries):
+    ```bash
+    pip install -r requirements-GPU.txt
+    ```
+
+    For more information on installing the CUDA necessary to use `onnxruntime-gpu`, please refer directly to the official [ONNX Runtime repository](https://github.com/microsoft/onnxruntime/).
+
+For more details on using the Insightface model, you can refer to their [example](https://github.com/deepinsight/insightface/tree/master/examples/in_swapper).
+
+
 ## Usage
 
-With Refacer, you can select a video, choose the face(s) to replace, and the tool does the rest! You'll have a deepfake created in no time.
+Once you have successfully installed Refacer and its dependencies, you can run the application using the following command:
 
+```bash
+python app.py
+```
 
-## Code Release
+Then, open your web browser and navigate to the following address:
 
-The code for Refacer will be released in a few hours. Stay tuned for updates.
+```
+http://127.0.0.1:7680
+```
 
 
 ## Questions?
