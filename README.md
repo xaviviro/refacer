@@ -11,18 +11,42 @@ Refacer, a simple tool that allows you to create deepfakes with multiple faces w
 
 [![Watch the video](https://img.youtube.com/vi/mXk1Ox7B244/maxresdefault.jpg)](https://youtu.be/mXk1Ox7B244)
 
+
+## System Compatibility and Requirements
+
+Refacer has been thoroughly tested on the following operating systems:
+
+| Operating System | CPU Support | GPU Support |
+| ---------------- | ----------- | ----------- |
+| MacOSX           | ✅         | ❌         |
+| Windows          | ✅         | ✅         |
+| Linux            | ✅         | ✅         |
+
+The application is compatible with both CPU and GPU (Nvidia CUDA) environments, with the exception of MacOSX which does not currently support GPU (CoreML) usage. 
+
+Please note, we do not recommend using `onnxruntime-silicon` on MacOSX due to an apparent issue with memory management. If you manage to compile `onnxruntime` for Silicon, the program is prepared to use CoreML.
+
+
 ## Usage
 
 With Refacer, you can select a video, choose the face(s) to replace, and the tool does the rest! You'll have a deepfake created in no time.
+
 
 ## Code Release
 
 The code for Refacer will be released in a few hours. Stay tuned for updates.
 
+
 ## Questions?
 
 If you have any questions or issues, feel free to [open an issue](https://github.com/xaviviro/refacer/issues/new) or submit a pull request.
 
+
+## Recognition Module
+
+The `recognition` folder in this repository is derived from Insightface's GitHub repository. You can find the original source code here: [Insightface Recognition Source Code](https://github.com/deepinsight/insightface/tree/master/web-demos/src_recognition)
+
+This module is used for recognizing and handling face data within the Refacer application, enabling its powerful deepfake capabilities. We are grateful to Insightface for their work and for making their code available.
 
 
 ## Disclaimer
