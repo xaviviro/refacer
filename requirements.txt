@@ -6,5 +6,5 @@ onnx==1.14.0
 onnxruntime==1.15.0
 opencv_python==4.7.0.72
 opencv_python_headless==4.7.0.72
-progressbar33==2.4
 scikit-image==0.20.0
+tqdm

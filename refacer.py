@@ -9,7 +9,7 @@ from arcface_onnx import ArcFaceONNX
 import os.path as osp
 import os
 from pathlib import Path
-import progressbar as pb
+from tqdm import tqdm
 import ffmpeg
 import random
 
@@ -31,13 +31,6 @@ class Refacer:
         self.rec_app.prepare(0)
 
         self.face_swapper = insightface.model_zoo.get_model('inswapper_128.onnx', download=True, download_zip=True, providers=['CoreMLExecutionProvider','CUDAExecutionProvider'])
-        self.pb_widgets =[
-            pb.Percentage(),
-            pb.Bar(),
-            ' ', pb.SimpleProgress(),
-            ' ', pb.ETA(),
-            ' ', pb.FileTransferSpeed(unit='it')
-        ]
 
     def __prepare_faces(self, faces):
         replacements=[]
@@ -59,15 +52,12 @@ class Refacer:
         out.run()
         return new_path
 
-    def reface(self, video_path, faces, gr_progress=None):        
+    def reface(self, video_path, faces):        
         output_video_path = os.path.join('out',Path(video_path).name)
         replacement_faces=self.__prepare_faces(faces)
 
         cap = cv2.VideoCapture(video_path)
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        bar = pb.ProgressBar(maxval=total,widgets=self.pb_widgets)
-        bar.start()
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -76,16 +66,13 @@ class Refacer:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         output = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
-        
+        pbar = tqdm(total=total_frames)
         while cap.isOpened():
             flag, frame = cap.read()
             if flag and len(frame)>0:
                 pos_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
                 
-                bar.update(pos_frame)
-
-                if gr_progress is not None:
-                    gr_progress((pos_frame,total),desc=f"Processing frame {pos_frame} of {total}")
+                pbar.update(pos_frame)
                     
                 faces = self.face_app.get(frame)
                 res = frame.copy()
@@ -100,7 +87,6 @@ class Refacer:
             else:
                 break
 
-        bar.finish()
         cap.release()
         output.release()
 
