@@ -1,7 +1,7 @@
 import gradio as gr
 from refacer import Refacer
 
-MAX_NUM_OF_FACES=5
+MAX_NUM_OF_FACES=8
 
 refacer = Refacer()
 

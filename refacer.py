@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import progressbar as pb
 import ffmpeg
+import random
 
 class Refacer:
 
@@ -30,6 +31,13 @@ class Refacer:
         self.rec_app.prepare(0)
 
         self.face_swapper = insightface.model_zoo.get_model('inswapper_128.onnx', download=True, download_zip=True, providers=['CoreMLExecutionProvider','CUDAExecutionProvider'])
+        self.pb_widgets =[
+            pb.Percentage(),
+            pb.Bar(),
+            ' ', pb.SimpleProgress(),
+            ' ', pb.ETA(),
+            ' ', pb.FileTransferSpeed(unit='it')
+        ]
 
     def __prepare_faces(self, faces):
         replacements=[]
@@ -43,21 +51,24 @@ class Refacer:
 
         return replacements
     def __convert_video(self,video_path,output_video_path):
-        new_path = output_video_path + "_c.mp4"
-        stream = ffmpeg.input(output_video_path)
+        new_path = output_video_path + random.randint(0,999) + "_c.mp4"
+        #stream = ffmpeg.input(output_video_path)
         in1 = ffmpeg.input(output_video_path)
         in2 = ffmpeg.input(video_path)
         out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec="libx264")
         out.run()
         return new_path
 
-    def reface(self, video_path, faces):
+    def reface(self, video_path, faces, gr_progress=None):        
         output_video_path = os.path.join('out',Path(video_path).name)
         replacement_faces=self.__prepare_faces(faces)
 
         cap = cv2.VideoCapture(video_path)
         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        bar = pb.ProgressBar(maxval=total)
+
+        bar = pb.ProgressBar(maxval=total,widgets=self.pb_widgets)
+        bar.start()
+        
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -65,12 +76,17 @@ class Refacer:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         output = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
-        bar.start()
+        
         while cap.isOpened():
             flag, frame = cap.read()
             if flag and len(frame)>0:
                 pos_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+                
                 bar.update(pos_frame)
+
+                if gr_progress is not None:
+                    gr_progress((pos_frame,total),desc=f"Processing frame {pos_frame} of {total}")
+                    
                 faces = self.face_app.get(frame)
                 res = frame.copy()
 
@@ -83,6 +99,7 @@ class Refacer:
                 output.write(res)
             else:
                 break
+
         bar.finish()
         cap.release()
         output.release()
