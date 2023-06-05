@@ -12,11 +12,13 @@ from pathlib import Path
 from tqdm import tqdm
 import ffmpeg
 import random
+import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
 
 class Refacer:
 
     def __init__(self):
-        onnxruntime.set_default_logger_severity(0)
+        onnxruntime.set_default_logger_severity(4)
 
         self.face_app = FaceAnalysis(name='buffalo_l')
         self.face_app.prepare(ctx_id=0, det_size=(640, 640))
@@ -36,10 +38,14 @@ class Refacer:
         replacements=[]
         for face in faces:
             #image1 = cv2.imread(face.origin)
-            bboxes1, kpss1 = self.face_detector.autodetect(face['origin'], max_num=1)      
+            bboxes1, kpss1 = self.face_detector.autodetect(face['origin'], max_num=1)  
+            if len(kpss1)<1:
+                raise Exception('No face detected on "Face to replace" image')
             feat_original = self.rec_app.get(face['origin'], kpss1[0])      
             #image2 = cv2.imread(face.destination)
             _faces = self.face_app.get(face['destination'],max_num=1)
+            if len(_faces)<1:
+                raise Exception('No face detected on "Destination face" image')
             replacements.append((feat_original,_faces[0],face['threshold']))
 
         return replacements
@@ -51,10 +57,19 @@ class Refacer:
         out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec="libx264")
         out.run()
         return new_path
+    
+    def __process_faces(self,frame):
+        faces = self.face_app.get(frame)
+        for face in faces:
+            for rep_face in self.replacement_faces:
+                sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
+                if sim>=rep_face[2]:
+                    frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
+        return frame
 
     def reface(self, video_path, faces):        
         output_video_path = os.path.join('out',Path(video_path).name)
-        replacement_faces=self.__prepare_faces(faces)
+        self.replacement_faces=self.__prepare_faces(faces)
 
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -70,29 +85,24 @@ class Refacer:
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         output = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
-
-        with tqdm(total=total_frames) as pbar:
+        
+        frames=[]
+        with tqdm(total=total_frames,desc="Extracting frames") as pbar:
             while cap.isOpened():
                 flag, frame = cap.read()
                 if flag and len(frame)>0:
-                    #pos_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-                    faces = self.face_app.get(frame)
-                    res = frame.copy()
-
-                    for face in faces:
-                        for rep_face in replacement_faces:
-                            sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
-                            if sim>=rep_face[2]:
-                                res = self.face_swapper.get(res, face, rep_face[1], paste_back=True)
-
-                    output.write(res)
-                    pbar.update(1)
+                    frames.append(frame.copy())
+                    pbar.update()
                 else:
                     break
+            cap.release()
+            pbar.close()
         
-        pbar.close()
-        cap.release()
-        output.release()
+        with ThreadPoolExecutor(max_workers = mp.cpu_count()-1) as executor:
+            results = list(tqdm(executor.map(self.__process_faces, frames), total=len(frames),desc="Processing frames"))
+            for result in results:
+                output.write(result)
+            output.release()
 
         return self.__convert_video(video_path,output_video_path)
     
