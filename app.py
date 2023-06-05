@@ -48,4 +48,4 @@ with gr.Blocks() as demo:
     button.click(fn=run,inputs=[video]+origin+destination+thresholds,outputs=[video2])
 
 #demo.launch(share=True,server_name="0.0.0.0", show_error=True)
-demo.queue().launch(show_error=True,debug=True,share=True)
+demo.queue().launch(show_error=True,share=True)
