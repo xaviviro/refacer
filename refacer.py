@@ -59,6 +59,10 @@ class Refacer:
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         print(f"Total frames: {total_frames}")
+
+        #probe = ffmpeg.probe(video_path)
+        #video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+        #print(video_stream)
         
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -67,26 +71,25 @@ class Refacer:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         output = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
-        pbar = tqdm(total=total_frames)
-        while cap.isOpened():
-            flag, frame = cap.read()
-            if flag and len(frame)>0:
-                pos_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-                
-                pbar.update(pos_frame)
-                    
-                faces = self.face_app.get(frame)
-                res = frame.copy()
+        with tqdm(total=total_frames) as pbar:
+            while cap.isOpened():
+                flag, frame = cap.read()
+                if flag and len(frame)>0:
+                    #pos_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+                    pbar.update(1)
+                        
+                    faces = self.face_app.get(frame)
+                    res = frame.copy()
 
-                for face in faces:
-                    for rep_face in replacement_faces:
-                        sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
-                        if sim>=rep_face[2]:
-                            res = self.face_swapper.get(res, face, rep_face[1], paste_back=True)
+                    for face in faces:
+                        for rep_face in replacement_faces:
+                            sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
+                            if sim>=rep_face[2]:
+                                res = self.face_swapper.get(res, face, rep_face[1], paste_back=True)
 
-                output.write(res)
-            else:
-                break
+                    output.write(res)
+                else:
+                    break
 
         cap.release()
         output.release()
