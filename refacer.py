@@ -51,7 +51,7 @@ class Refacer:
 
         return replacements
     def __convert_video(self,video_path,output_video_path):
-        new_path = output_video_path + random.randint(0,999) + "_c.mp4"
+        new_path = output_video_path + str(random.randint(0,999)) + "_c.mp4"
         #stream = ffmpeg.input(output_video_path)
         in1 = ffmpeg.input(output_video_path)
         in2 = ffmpeg.input(video_path)
