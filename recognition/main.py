@@ -9,7 +9,7 @@ import onnxruntime
 from scrfd import SCRFD
 from arcface_onnx import ArcFaceONNX
 
-onnxruntime.set_default_logger_severity(3)
+onnxruntime.set_default_logger_severity(5)
 
 assets_dir = osp.expanduser('~/.insightface/models/buffalo_l')
 
