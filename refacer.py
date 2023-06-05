@@ -76,8 +76,6 @@ class Refacer:
                 flag, frame = cap.read()
                 if flag and len(frame)>0:
                     #pos_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-                    pbar.update(1)
-                        
                     faces = self.face_app.get(frame)
                     res = frame.copy()
 
@@ -88,9 +86,11 @@ class Refacer:
                                 res = self.face_swapper.get(res, face, rep_face[1], paste_back=True)
 
                     output.write(res)
+                    pbar.update(1)
                 else:
                     break
-
+        
+        pbar.close()
         cap.release()
         output.release()
 
