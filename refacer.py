@@ -58,6 +58,7 @@ class Refacer:
 
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        print(f"Total frames: {total_frames}")
         
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -70,7 +71,7 @@ class Refacer:
         while cap.isOpened():
             flag, frame = cap.read()
             if flag and len(frame)>0:
-                pos_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+                pos_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
                 
                 pbar.update(pos_frame)
                     
