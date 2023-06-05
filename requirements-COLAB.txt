@@ -1,8 +1,7 @@
-numba==0.57.0
 ffmpeg_python==0.2.0
 gradio==3.33.1
 insightface==0.7.3
-numpy==1.24.3
+numpy==1.23.5
 onnx==1.14.0
 onnxruntime==1.15.0
 opencv_python==4.7.0.72
