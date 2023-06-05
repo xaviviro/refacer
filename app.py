@@ -33,7 +33,7 @@ with gr.Blocks() as demo:
         gr.Markdown("# Refacer")
     with gr.Row():
         video=gr.Video(label="Original video")
-        video2=gr.Video(label="Refaced video",interactive=False,format="mp4")
+        video2=gr.Video(label="Refaced video",interactive=False)
 
     for i in range(0,MAX_NUM_OF_FACES):
         with gr.Tab(f"Face #{i+1}"):
