@@ -8,3 +8,4 @@ opencv_python==4.7.0.72
 opencv_python_headless==4.7.0.72
 scikit-image==0.20.0
 tqdm
+psutil
