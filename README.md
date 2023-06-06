@@ -22,13 +22,13 @@ Refacer has been thoroughly tested on the following operating systems:
 
 | Operating System | CPU Support | GPU Support |
 | ---------------- | ----------- | ----------- |
-| MacOSX           | ✅         | ❌         |
+| MacOSX           | ✅         | :warning:         |
 | Windows          | ✅         | ✅         |
 | Linux            | ✅         | ✅         |
 
-The application is compatible with both CPU and GPU (Nvidia CUDA) environments, with the exception of MacOSX which does not currently support GPU (CoreML) usage. 
+The application is compatible with both CPU and GPU (Nvidia CUDA) environments, and MacOSX(CoreML) 
 
-Please note, we do not recommend using `onnxruntime-silicon` on MacOSX due to an apparent issue with memory management. If you manage to compile `onnxruntime` for Silicon, the program is prepared to use CoreML.
+:warning: Please note, we do not recommend using `onnxruntime-silicon` on MacOSX due to an apparent issue with memory management. If you manage to compile `onnxruntime` for Silicon, the program is prepared to use CoreML.
 
 
 ## Installation
@@ -59,6 +59,11 @@ Follow these steps to install Refacer:
     * For GPU (compatible with Windows and Linux only, requires a NVIDIA GPU with CUDA and its libraries):
     ```bash
     pip install -r requirements-GPU.txt
+    ```
+
+     * For CoreML (compatible with MacOSX, requires Silicon architecture):
+    ```bash
+    pip install -r requirements-COREML.txt
     ```
 
     For more information on installing the CUDA necessary to use `onnxruntime-gpu`, please refer directly to the official [ONNX Runtime repository](https://github.com/microsoft/onnxruntime/).
