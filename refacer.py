@@ -18,6 +18,8 @@ import psutil
 from enum import Enum
 from insightface.app.common import Face
 from insightface.utils.storage import ensure_available
+import re
+import subprocess
 
 class RefacerMode(Enum):
      CPU, CUDA, COREML, TENSORRT = range(1, 5)
@@ -25,6 +27,7 @@ class RefacerMode(Enum):
 class Refacer:
     def __init__(self,force_cpu=False):
         self.force_cpu = force_cpu
+        self.__check_encoders()
         self.__check_providers()
         self.total_mem = psutil.virtual_memory().total
         self.__init_apps()
@@ -96,12 +99,14 @@ class Refacer:
 
         return replacements
     def __convert_video(self,video_path,output_video_path):
+        print("Merging audio with the refaced video...")
         new_path = output_video_path + str(random.randint(0,999)) + "_c.mp4"
         #stream = ffmpeg.input(output_video_path)
         in1 = ffmpeg.input(output_video_path)
         in2 = ffmpeg.input(video_path)
-        out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec="libx264")
-        out.run()
+        out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec=self.ffmpeg_video_encoder)
+        out.run(overwrite_output=True,quiet=True)
+        print(f"The process has finished.\nThe refaced video can be found at {os.path.abspath(new_path)}")
         return new_path
 
     def __get_faces(self,frame,max_num=0):
@@ -120,7 +125,7 @@ class Refacer:
             face.embedding = self.rec_app.get(frame, kps)
             ret.append(face)
         return ret
-    
+
     def __process_faces(self,frame):
         faces = self.__get_faces(frame)
         for face in faces:
@@ -169,3 +174,28 @@ class Refacer:
             output.release()
 
         return self.__convert_video(video_path,output_video_path)
+    
+    def __check_encoders(self):
+        self.ffmpeg_video_encoder="libx264"
+        pattern = r"encoders: ([a-zA-Z0-9_]+(?: [a-zA-Z0-9_]+)*)"
+        command = ['ffmpeg', '-codecs', '--list-encoders']
+        commandout = subprocess.run(command, check=True, capture_output=True).stdout
+        result = commandout.decode('utf-8').split('\n')
+        for r in result:
+            if "264" in r: 
+                encoders = re.search(pattern, r).group(1).split(' ')
+                #print(encoders)
+                for v_c in Refacer.VIDEO_CODECS:
+                    if v_c in encoders:
+                        self.ffmpeg_video_encoder=v_c
+                        break
+        print(f"Video codec for FFMPEG: {self.ffmpeg_video_encoder}")
+
+    VIDEO_CODECS = [
+         #'h264_videotoolbox', #osx HW acceleration
+         'h264_nvenc', #NVIDIA HW acceleration
+         #'h264_qsv', #Intel HW acceleration
+         #'h264_vaapi', #Intel HW acceleration
+         #'h264_omx', #HW acceleration
+         'libx264', #No HW acceleration
+    ]
