@@ -42,18 +42,20 @@ class Refacer:
         if len(self.providers) == 1 and 'CPUExecutionProvider' in self.providers:
             self.mode = RefacerMode.CPU
             self.use_num_cpus = mp.cpu_count()-1
-            self.sess_options.intra_op_num_threads = int(self.use_num_cpus/2)
+            self.sess_options.intra_op_num_threads = int(self.use_num_cpus/3)
             print(f"CPU mode with providers {self.providers}")
         elif 'CoreMLExecutionProvider' in self.providers:
             self.mode = RefacerMode.COREML
             self.use_num_cpus = mp.cpu_count()-1
+            self.sess_options.intra_op_num_threads = int(self.use_num_cpus/3)
             print(f"CoreML mode with providers {self.providers}")
-            self.sess_options.intra_op_num_threads = int(self.use_num_cpus/2)
         elif 'TensorrtExecutionProvider' in self.providers:
             self.mode = RefacerMode.TENSORRT
-            self.use_num_cpus = 1
-            self.sess_options.intra_op_num_threads = 1
-            print(f"TENSORT mode with providers {self.providers}")
+            #self.use_num_cpus = 1
+            #self.sess_options.intra_op_num_threads = 1
+            self.use_num_cpus = mp.cpu_count()-1
+            self.sess_options.intra_op_num_threads = int(self.use_num_cpus/3)
+            print(f"TENSORRT mode with providers {self.providers}")
         elif 'CUDAExecutionProvider' in self.providers:
             self.mode = RefacerMode.CUDA
             self.use_num_cpus = 1
