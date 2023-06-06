@@ -20,7 +20,7 @@ from insightface.app.common import Face
 from insightface.utils.storage import ensure_available
 
 class RefacerMode(Enum):
-     CPU, CUDA, COREML, TENSORRT = range(1, 4)
+     CPU, CUDA, COREML, TENSORRT = range(1, 5)
 
 class Refacer:
     def __init__(self,force_cpu=False):
