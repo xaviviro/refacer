@@ -56,6 +56,8 @@ class Refacer:
             self.mode = RefacerMode.CUDA
             self.use_num_cpus = 1
             self.sess_options.intra_op_num_threads = 1
+            if 'TensorrtExecutionProvider' in self.providers:
+                self.providers.remove('TensorrtExecutionProvider')
             print(f"CUDA mode with providers {self.providers}")
         """
         elif 'TensorrtExecutionProvider' in self.providers:
