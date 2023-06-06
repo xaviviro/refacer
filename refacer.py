@@ -49,7 +49,7 @@ class Refacer:
             self.use_num_cpus = mp.cpu_count()-1
             print(f"CoreML mode with providers {self.providers}")
             self.sess_options.intra_op_num_threads = int(self.use_num_cpus/2)
-        elif 'CUDAExecutionProvider' in self.providers:
+        elif 'CUDAExecutionProvider' in self.providers or 'TensorrtExecutionProvider' in self.providers:
             self.mode = RefacerMode.CUDA
             self.use_num_cpus = 1
             self.sess_options.intra_op_num_threads = 1
