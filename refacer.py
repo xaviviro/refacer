@@ -103,13 +103,18 @@ class Refacer:
 
         return replacements
     def __convert_video(self,video_path,output_video_path):
-        print("Merging audio with the refaced video...")
-        new_path = output_video_path + str(random.randint(0,999)) + "_c.mp4"
-        #stream = ffmpeg.input(output_video_path)
-        in1 = ffmpeg.input(output_video_path)
-        in2 = ffmpeg.input(video_path)
-        out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec=self.ffmpeg_video_encoder)
-        out.run(overwrite_output=True,quiet=True)
+        if self.video_has_audio:
+            print("Merging audio with the refaced video...")
+            new_path = output_video_path + str(random.randint(0,999)) + "_c.mp4"
+            #stream = ffmpeg.input(output_video_path)
+            in1 = ffmpeg.input(output_video_path)
+            in2 = ffmpeg.input(video_path)
+            out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec=self.ffmpeg_video_encoder)
+            out.run(overwrite_output=True,quiet=True)
+        else:
+            new_path = output_video_path
+            print("The video doesn't have audio, so post-processing is not necessary")
+        
         print(f"The process has finished.\nThe refaced video can be found at {os.path.abspath(new_path)}")
         return new_path
 
@@ -139,17 +144,21 @@ class Refacer:
                     frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
         return frame
 
-    def reface(self, video_path, faces):  
+    def __check_video_has_audio(self,video_path):
+        self.video_has_audio = False
+        probe = ffmpeg.probe(video_path)
+        audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+        if audio_stream is not None:
+            self.video_has_audio = True
+    def reface(self, video_path, faces):
+
+        self.__check_video_has_audio(video_path)
         output_video_path = os.path.join('out',Path(video_path).name)
         self.replacement_faces=self.__prepare_faces(faces)
 
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         print(f"Total frames: {total_frames}")
-
-        #probe = ffmpeg.probe(video_path)
-        #video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
-        #print(video_stream)
         
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -197,7 +206,7 @@ class Refacer:
 
     VIDEO_CODECS = [
          #'h264_videotoolbox', #osx HW acceleration
-         #'h264_nvenc', #NVIDIA HW acceleration
+         'h264_nvenc', #NVIDIA HW acceleration
          #'h264_qsv', #Intel HW acceleration
          #'h264_vaapi', #Intel HW acceleration
          #'h264_omx', #HW acceleration
