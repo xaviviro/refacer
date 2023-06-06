@@ -20,7 +20,7 @@ from insightface.app.common import Face
 from insightface.utils.storage import ensure_available
 
 class RefacerMode(Enum):
-     CPU, CUDA, COREML = range(1, 4)
+     CPU, CUDA, COREML, TENSORRT = range(1, 4)
 
 class Refacer:
     def __init__(self,force_cpu=False):
@@ -49,11 +49,17 @@ class Refacer:
             self.use_num_cpus = mp.cpu_count()-1
             print(f"CoreML mode with providers {self.providers}")
             self.sess_options.intra_op_num_threads = int(self.use_num_cpus/2)
-        elif 'CUDAExecutionProvider' in self.providers or 'TensorrtExecutionProvider' in self.providers:
+        elif 'CUDAExecutionProvider' in self.providers:
             self.mode = RefacerMode.CUDA
             self.use_num_cpus = 1
             self.sess_options.intra_op_num_threads = 1
             print(f"CUDA mode with providers {self.providers}")
+        elif 'TensorrtExecutionProvider' in self.providers:
+            self.mode = RefacerMode.TENSORRT
+            self.use_num_cpus = 1
+            self.sess_options.intra_op_num_threads = 1
+            print(f"TENSORT mode with providers {self.providers}")
+
     def __init_apps(self):
         assets_dir = ensure_available('models', 'buffalo_l', root='~/.insightface')
 
