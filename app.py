@@ -6,9 +6,10 @@ parser = argparse.ArgumentParser(description='Refacer')
 parser.add_argument("--max_num_faces", help="Max number of faces on UI", default=5)
 parser.add_argument("--force_cpu", help="Force CPU mode", default=False,action="store_true")
 parser.add_argument("--share_gradio", help="Share Gradio", default=False,action="store_true")
+parser.add_argument("--colab_performance", help="Use in colab for better performance", default=False,action="store_true")
 args = parser.parse_args()
 
-refacer = Refacer(force_cpu=args.force_cpu)
+refacer = Refacer(force_cpu=args.force_cpu,colab_performance=args.colab_performance)
 
 num_faces=args.max_num_faces
 

@@ -25,8 +25,10 @@ class RefacerMode(Enum):
      CPU, CUDA, COREML, TENSORRT = range(1, 5)
 
 class Refacer:
-    def __init__(self,force_cpu=False):
+    def __init__(self,force_cpu=False,colab_performance=False):
+        self.first_face = False
         self.force_cpu = force_cpu
+        self.colab_performance = colab_performance
         self.__check_encoders()
         self.__check_providers()
         self.total_mem = psutil.virtual_memory().total
@@ -47,6 +49,11 @@ class Refacer:
             self.use_num_cpus = mp.cpu_count()-1
             self.sess_options.intra_op_num_threads = int(self.use_num_cpus/3)
             print(f"CPU mode with providers {self.providers}")
+        elif self.colab_performance:
+            self.mode = RefacerMode.TENSORRT
+            self.use_num_cpus = mp.cpu_count()-1
+            self.sess_options.intra_op_num_threads = int(self.use_num_cpus/3)
+            print(f"TENSORRT mode with providers {self.providers}")
         elif 'CoreMLExecutionProvider' in self.providers:
             self.mode = RefacerMode.COREML
             self.use_num_cpus = mp.cpu_count()-1
@@ -87,21 +94,27 @@ class Refacer:
         sess_swap = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
         self.face_swapper = INSwapper(model_path,sess_swap)
 
-    def __prepare_faces(self, faces):
-        replacements=[]
+    def prepare_faces(self, faces):
+        self.replacement_faces=[]
         for face in faces:
             #image1 = cv2.imread(face.origin)
-            bboxes1, kpss1 = self.face_detector.autodetect(face['origin'], max_num=1)  
-            if len(kpss1)<1:
-                raise Exception('No face detected on "Face to replace" image')
-            feat_original = self.rec_app.get(face['origin'], kpss1[0])      
+            if "origin" in face:
+                face_threshold = face['threshold']
+                bboxes1, kpss1 = self.face_detector.autodetect(face['origin'], max_num=1)  
+                if len(kpss1)<1:
+                    raise Exception('No face detected on "Face to replace" image')
+                feat_original = self.rec_app.get(face['origin'], kpss1[0])
+            else:
+                face_threshold = 0
+                self.first_face = True
+                feat_original = None
+                print('No origin image: First face change')
             #image2 = cv2.imread(face.destination)
             _faces = self.__get_faces(face['destination'],max_num=1)
             if len(_faces)<1:
                 raise Exception('No face detected on "Destination face" image')
-            replacements.append((feat_original,_faces[0],face['threshold']))
+            self.replacement_faces.append((feat_original,_faces[0],face_threshold))
 
-        return replacements
     def __convert_video(self,video_path,output_video_path):
         if self.video_has_audio:
             print("Merging audio with the refaced video...")
@@ -109,7 +122,7 @@ class Refacer:
             #stream = ffmpeg.input(output_video_path)
             in1 = ffmpeg.input(output_video_path)
             in2 = ffmpeg.input(video_path)
-            out = ffmpeg.output(in1.video, in2.audio, new_path,vcodec=self.ffmpeg_video_encoder)
+            out = ffmpeg.output(in1.video, in2.audio, new_path,video_bitrate=self.ffmpeg_video_bitrate,vcodec=self.ffmpeg_video_encoder)
             out.run(overwrite_output=True,quiet=True)
         else:
             new_path = output_video_path
@@ -119,6 +132,7 @@ class Refacer:
         return new_path
 
     def __get_faces(self,frame,max_num=0):
+
         bboxes, kpss = self.face_detector.detect(frame,max_num=max_num,metric='default')
 
         if bboxes.shape[0] == 0:
@@ -135,13 +149,21 @@ class Refacer:
             ret.append(face)
         return ret
 
-    def __process_faces(self,frame):
-        faces = self.__get_faces(frame)
+    def process_faces(self,frame):
+        max_num=0
+        if self.first_face:
+            max_num=1
+        
+        faces = self.__get_faces(frame,max_num=max_num)
         for face in faces:
-            for rep_face in self.replacement_faces:
-                sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
-                if sim>=rep_face[2]:
-                    frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
+            if self.first_face:
+                frame = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=True)
+                break
+            else:
+                for rep_face in self.replacement_faces:
+                    sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
+                    if sim>=rep_face[2]:
+                        frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
         return frame
 
     def __check_video_has_audio(self,video_path):
@@ -150,11 +172,11 @@ class Refacer:
         audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
         if audio_stream is not None:
             self.video_has_audio = True
+        
     def reface(self, video_path, faces):
-
         self.__check_video_has_audio(video_path)
         output_video_path = os.path.join('out',Path(video_path).name)
-        self.replacement_faces=self.__prepare_faces(faces)
+        self.prepare_faces(faces)
 
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -181,15 +203,28 @@ class Refacer:
             pbar.close()
         
         with ThreadPoolExecutor(max_workers = self.use_num_cpus) as executor:
-            results = list(tqdm(executor.map(self.__process_faces, frames), total=len(frames),desc="Processing frames"))
+            results = list(tqdm(executor.map(self.process_faces, frames), total=len(frames),desc="Processing frames"))
             for result in results:
                 output.write(result)
             output.release()
 
         return self.__convert_video(video_path,output_video_path)
     
+    def __try_ffmpeg_encoder(self, vcodec):
+        print(f"Trying FFMPEG {vcodec} encoder")
+        command = ['ffmpeg', '-y', '-f','lavfi','-i','testsrc=duration=1:size=1280x720:rate=30','-vcodec',vcodec,'testsrc.mp4']
+        try:
+            subprocess.run(command, check=True, capture_output=True).stderr
+        except subprocess.CalledProcessError as e:
+            print(f"FFMPEG {vcodec} encoder doesn't work -> Disabled.")
+            return False
+        print(f"FFMPEG {vcodec} encoder works")
+        return True
+        
     def __check_encoders(self):
-        self.ffmpeg_video_encoder="libx264"
+        self.ffmpeg_video_encoder='libx264'
+        self.ffmpeg_video_bitrate='0'
+
         pattern = r"encoders: ([a-zA-Z0-9_]+(?: [a-zA-Z0-9_]+)*)"
         command = ['ffmpeg', '-codecs', '--list-encoders']
         commandout = subprocess.run(command, check=True, capture_output=True).stdout
@@ -197,18 +232,20 @@ class Refacer:
         for r in result:
             if "264" in r: 
                 encoders = re.search(pattern, r).group(1).split(' ')
-                #print(encoders)
                 for v_c in Refacer.VIDEO_CODECS:
-                    if v_c in encoders:
-                        self.ffmpeg_video_encoder=v_c
-                        break
-        print(f"Video codec for FFMPEG: {self.ffmpeg_video_encoder}")
+                    for v_k in encoders:
+                        if v_c == v_k:
+                            if self.__try_ffmpeg_encoder(v_k):
+                                self.ffmpeg_video_encoder=v_k
+                                self.ffmpeg_video_bitrate=Refacer.VIDEO_CODECS[v_k]
+                                print(f"Video codec for FFMPEG: {self.ffmpeg_video_encoder}")
+                                return
 
-    VIDEO_CODECS = [
-         #'h264_videotoolbox', #osx HW acceleration
-         'h264_nvenc', #NVIDIA HW acceleration
+    VIDEO_CODECS = {
+         'h264_videotoolbox':'0', #osx HW acceleration
+         'h264_nvenc':'0', #NVIDIA HW acceleration
          #'h264_qsv', #Intel HW acceleration
          #'h264_vaapi', #Intel HW acceleration
          #'h264_omx', #HW acceleration
-         'libx264', #No HW acceleration
-    ]
+         'libx264':'0' #No HW acceleration
+    }
