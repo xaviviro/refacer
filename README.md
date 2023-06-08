@@ -2,6 +2,8 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/xaviviro/refacer/blob/master/notebooks/Refacer_colab.ipynb)
 
+👉 [Watch demo on Youtube](https://youtu.be/mXk1Ox7B244)
+
 Refacer, a simple tool that allows you to create deepfakes with multiple faces with just one click! This project was inspired by [Roop](https://github.com/s0md3v/roop) and is powered by the excellent [Insightface](https://github.com/deepinsight/insightface). Refacer requires no training - just one photo and you're ready to go.
 
 :warning: Please, before using the code from this repository, make sure to read the [disclaimer](https://github.com/xaviviro/refacer/tree/main#disclaimer).
@@ -9,9 +11,6 @@ Refacer, a simple tool that allows you to create deepfakes with multiple faces w
 ## Demonstration
 
 ![demonstration](demo.gif)
-
-[Watch demo video on Youtube](https://youtu.be/mXk1Ox7B244)
-
 
 [![Watch the video](https://img.youtube.com/vi/mXk1Ox7B244/maxresdefault.jpg)](https://youtu.be/mXk1Ox7B244)
 
@@ -29,6 +28,12 @@ Refacer has been thoroughly tested on the following operating systems:
 The application is compatible with both CPU and GPU (Nvidia CUDA) environments, and MacOSX(CoreML) 
 
 :warning: Please note, we do not recommend using `onnxruntime-silicon` on MacOSX due to an apparent issue with memory management. If you manage to compile `onnxruntime` for Silicon, the program is prepared to use CoreML.
+
+## Prerequisites
+
+Ensure that you have `ffmpeg` installed and correctly configured. There are many guides available on the internet to help with this. Here are a few (note: I did not create these guides):
+
+- [How to Install FFmpeg](https://www.hostinger.com/tutorials/how-to-install-ffmpe)
 
 
 ## Installation
