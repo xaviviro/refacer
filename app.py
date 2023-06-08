@@ -7,11 +7,41 @@ parser.add_argument("--max_num_faces", help="Max number of faces on UI", default
 parser.add_argument("--force_cpu", help="Force CPU mode", default=False,action="store_true")
 parser.add_argument("--share_gradio", help="Share Gradio", default=False,action="store_true")
 parser.add_argument("--colab_performance", help="Use in colab for better performance", default=False,action="store_true")
+parser.add_argument("--ngrok", help="Use ngrok", default=None)
+parser.add_argument("--ngrok_region", help="ngrok region", default="us")
 args = parser.parse_args()
 
 refacer = Refacer(force_cpu=args.force_cpu,colab_performance=args.colab_performance)
 
 num_faces=args.max_num_faces
+
+# Connect to ngrok for ingress
+def connect(token, port, options):
+    account = None
+    if token is None:
+        token = 'None'
+    else:
+        if ':' in token:
+            # token = authtoken:username:password
+            token, username, password = token.split(':', 2)
+            account = f"{username}:{password}"
+
+    # For all options see: https://github.com/ngrok/ngrok-py/blob/main/examples/ngrok-connect-full.py
+    if not options.get('authtoken_from_env'):
+        options['authtoken'] = token
+    if account:
+        options['basic_auth'] = account
+
+
+    try:
+        public_url = ngrok.connect(f"127.0.0.1:{port}", **options).url()
+    except Exception as e:
+        print(f'Invalid ngrok authtoken? ngrok connection aborted due to: {e}\n'
+              f'Your token: {token}, get the right one on https://dashboard.ngrok.com/get-started/your-authtoken')
+    else:
+        print(f'ngrok connected to localhost:{port}! URL: {public_url}\n'
+               'You can use this link after the launch is complete.')
+
 
 def run(*vars):
     video_path=vars[0]
@@ -52,6 +82,9 @@ with gr.Blocks() as demo:
         button=gr.Button("Reface", variant="primary")
 
     button.click(fn=run,inputs=[video]+origin+destination+thresholds,outputs=[video2])
-
+    
+if args.ngrok is not None:
+    connect(args.ngrok, 7860, {'region': args.ngrok_region, 'authtoken_from_env': False})
+    
 #demo.launch(share=True,server_name="0.0.0.0", show_error=True)
 demo.queue().launch(show_error=True,share=args.share_gradio)
