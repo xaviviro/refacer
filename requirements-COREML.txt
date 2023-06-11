@@ -3,7 +3,7 @@ gradio==3.33.1
 insightface==0.7.3
 numpy==1.24.3
 onnx==1.14.0
-onnxruntime-sillicon
+onnxruntime-silicon
 opencv_python==4.7.0.72
 opencv_python_headless==4.7.0.72
 scikit-image==0.20.0
