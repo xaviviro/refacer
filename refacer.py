@@ -141,6 +141,7 @@ class Refacer:
             in2 = ffmpeg.input(video_path)
             out = ffmpeg.output(in1.video, in2.audio, new_path,video_bitrate=self.ffmpeg_video_bitrate,vcodec=self.ffmpeg_video_encoder)
             out.run(overwrite_output=True,quiet=True)
+            os.remove(output_video_path)
         else:
             new_path = get_next_filename(output_video_path)
             os.rename(output_video_path, new_path)

@@ -2,6 +2,7 @@ import gradio as gr
 from refacer import Refacer
 import argparse
 import ngrok
+import os
 
 parser = argparse.ArgumentParser(description='Refacer')
 parser.add_argument("--max_num_faces", type=int, help="Max number of faces on UI", default=5)
@@ -53,6 +54,8 @@ def run(*vars):
     destinations=vars[(num_faces+1):(num_faces*2)+1]
     thresholds=vars[(num_faces*2)+1:]
     out=vars[-1]
+
+    os.makedirs(out, exist_ok=True)
 
     faces = []
     for k in range(0,num_faces):
