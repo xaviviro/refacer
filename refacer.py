@@ -153,8 +153,17 @@ class Refacer:
         return ret
 
     def paste_upscale(self, bgr_fake, M, img):
+        #todo: scale factor should be read from ONNX model
+        scale_factor = 8
+        M = M * scale_factor
+        bgr_fake = cv2.GaussianBlur(bgr_fake, (1,1), 0)
+        #bgr_fake = self.upscaler.get_result(bgr_fake)
+        #Fake upscale for testing
+        bgr_fake = cv2.resize(bgr_fake, (self.face_swapper_input_size*scale_factor, 
+                                         self.face_swapper_input_size*scale_factor), interpolation = cv2.INTER_LANCZOS4 )
         target_img = img
-        aimg = cv2.warpAffine(img, M, (self.face_swapper_input_size, self.face_swapper_input_size), borderValue=0.0)
+        aimg = cv2.warpAffine(img, M, (self.face_swapper_input_size*scale_factor, 
+                                       self.face_swapper_input_size*scale_factor), borderValue=0.0)
         fake_diff = bgr_fake.astype(np.float32) - aimg.astype(np.float32)
         fake_diff = np.abs(fake_diff).mean(axis=2)
         fake_diff[:2,:] = 0
