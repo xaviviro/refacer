@@ -69,6 +69,7 @@ origin = []
 destination = []
 thresholds = []
 output_path = args.output_path if args.output_path else "./out/"
+outs = []
 
 
 def update_out_dir(val):
@@ -96,7 +97,7 @@ with gr.Blocks() as demo:
         tb_output_path = gr.Textbox(value=output_path,label="Output path")
         tb_output_path.change(fn=update_out_dir, inputs=tb_output_path)
 
-    button.click(fn=run,inputs=[video]+origin+destination+thresholds+tb_output_path,outputs=[video2])
+    button.click(fn=run,inputs=[video]+origin+destination+thresholds+[tb_output_path],outputs=[video2])
     
 if args.ngrok is not None:
     connect(args.ngrok, args.server_port, {'region': args.ngrok_region, 'authtoken_from_env': False})
