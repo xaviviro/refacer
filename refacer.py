@@ -116,16 +116,34 @@ class Refacer:
             self.replacement_faces.append((feat_original,_faces[0],face_threshold))
 
     def __convert_video(self,video_path,output_video_path):
+        def get_next_filename(path, suffix=""):
+            fname, ext = os.path.splitext(path)
+            if suffix:
+                suffix = f"_{suffix}"
+            fname += f"_%03d{suffix}.mp4"
+
+            i = 1
+            while os.path.exists(fname % i):
+                i = i * 2
+
+            left, right = (i // 2, i)
+            while left + 1 < right:
+                mid = (left + right) // 2  # interval midpoint
+                left, right = (mid, right) if os.path.exists(fname % mid) else (left, mid)
+
+            return fname % right
+
         if self.video_has_audio:
             print("Merging audio with the refaced video...")
-            new_path = output_video_path + str(random.randint(0,999)) + "_c.mp4"
+            new_path = get_next_filename(output_video_path, "c")
             #stream = ffmpeg.input(output_video_path)
             in1 = ffmpeg.input(output_video_path)
             in2 = ffmpeg.input(video_path)
             out = ffmpeg.output(in1.video, in2.audio, new_path,video_bitrate=self.ffmpeg_video_bitrate,vcodec=self.ffmpeg_video_encoder)
             out.run(overwrite_output=True,quiet=True)
         else:
-            new_path = output_video_path
+            new_path = get_next_filename(output_video_path)
+            os.rename(output_video_path, new_path)
             print("The video doesn't have audio, so post-processing is not necessary")
         
         print(f"The process has finished.\nThe refaced video can be found at {os.path.abspath(new_path)}")
@@ -173,9 +191,10 @@ class Refacer:
         if audio_stream is not None:
             self.video_has_audio = True
         
-    def reface(self, video_path, faces):
+    def reface(self, video_path, out_dir, faces):
         self.__check_video_has_audio(video_path)
-        output_video_path = os.path.join('out',Path(video_path).name)
+
+        output_video_path = os.path.join(out_dir,Path(video_path).name)
         self.prepare_faces(faces)
 
         cap = cv2.VideoCapture(video_path)
