@@ -2,6 +2,7 @@ import gradio as gr
 from refacer import Refacer
 import argparse
 import ngrok
+import os
 
 parser = argparse.ArgumentParser(description='Refacer')
 parser.add_argument("--max_num_faces", type=int, help="Max number of faces on UI", default=5)
@@ -10,6 +11,7 @@ parser.add_argument("--share_gradio", help="Share Gradio", default=False, action
 parser.add_argument("--server_name", type=str, help="Server IP address", default="127.0.0.1")
 parser.add_argument("--server_port", type=int, help="Server port", default=7860)
 parser.add_argument("--colab_performance", help="Use in colab for better performance", default=False,action="store_true")
+parser.add_argument("--output_path", help="Specifies output folder", default="")
 parser.add_argument("--ngrok", type=str, help="Use ngrok", default=None)
 parser.add_argument("--ngrok_region", type=str, help="ngrok region", default="us")
 args = parser.parse_args()
@@ -51,6 +53,9 @@ def run(*vars):
     origins=vars[1:(num_faces+1)]
     destinations=vars[(num_faces+1):(num_faces*2)+1]
     thresholds=vars[(num_faces*2)+1:]
+    out=vars[-1]
+
+    os.makedirs(out, exist_ok=True)
 
     faces = []
     for k in range(0,num_faces):
@@ -61,11 +66,19 @@ def run(*vars):
                 'threshold':thresholds[k]
             })
 
-    return refacer.reface(video_path,faces)
+    return refacer.reface(video_path,out,faces)
 
 origin = []
 destination = []
 thresholds = []
+output_path = args.output_path if args.output_path else "./out/"
+outs = []
+
+
+def update_out_dir(val):
+    print(f"New output path is '{val}'")
+    return val
+
 
 with gr.Blocks() as demo:
     with gr.Row():
@@ -83,8 +96,11 @@ with gr.Blocks() as demo:
                 thresholds.append(gr.Slider(label="Threshold",minimum=0.0,maximum=1.0,value=0.2))
     with gr.Row():
         button=gr.Button("Reface", variant="primary")
+    with gr.Row():
+        tb_output_path = gr.Textbox(value=output_path,label="Output path")
+        tb_output_path.change(fn=update_out_dir, inputs=tb_output_path)
 
-    button.click(fn=run,inputs=[video]+origin+destination+thresholds,outputs=[video2])
+    button.click(fn=run,inputs=[video]+origin+destination+thresholds+[tb_output_path],outputs=[video2])
     
 if args.ngrok is not None:
     connect(args.ngrok, args.server_port, {'region': args.ngrok_region, 'authtoken_from_env': False})
