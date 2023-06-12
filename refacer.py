@@ -21,6 +21,7 @@ from insightface.utils.storage import ensure_available
 import re
 import subprocess
 import numpy as np
+from ESRGANONNX import ESRGAN
 
 class RefacerMode(Enum):
      CPU, CUDA, COREML, TENSORRT = range(1, 5)
@@ -97,6 +98,12 @@ class Refacer:
         self.face_swapper_input_size = self.face_swapper.input_size[0]
         #print("INSwapper resolution = ",self.face_swapper_input_size)
 
+        model_path = 'TGHQFace8x_500k-fp32.onnx'
+        sess_upsk = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
+        self.scale_factor = 8
+        self.tile_size = 128
+        self.esrgan_model = ESRGAN(model_path,sess_upsk, tile_size = self.tile_size, scale = self.scale_factor)
+
     def prepare_faces(self, faces):
         self.replacement_faces=[]
         for face in faces:
@@ -153,17 +160,13 @@ class Refacer:
         return ret
 
     def paste_upscale(self, bgr_fake, M, img):
-        #todo: scale factor should be read from ONNX model
-        scale_factor = 8
-        M = M * scale_factor
-        bgr_fake = cv2.GaussianBlur(bgr_fake, (1,1), 0)
-        #bgr_fake = self.upscaler.get_result(bgr_fake)
-        #Fake upscale for testing
-        bgr_fake = cv2.resize(bgr_fake, (self.face_swapper_input_size*scale_factor, 
-                                         self.face_swapper_input_size*scale_factor), interpolation = cv2.INTER_LANCZOS4 )
+        M = M * self.scale_factor
+        bgr_fake_temp = bgr_fake
+        bgr_fake = cv2.resize(bgr_fake, (self.face_swapper_input_size*self.scale_factor, 
+                                         self.face_swapper_input_size*self.scale_factor), interpolation = cv2.INTER_LINEAR )
         target_img = img
-        aimg = cv2.warpAffine(img, M, (self.face_swapper_input_size*scale_factor, 
-                                       self.face_swapper_input_size*scale_factor), borderValue=0.0)
+        aimg = cv2.warpAffine(img, M, (self.face_swapper_input_size*self.scale_factor, 
+                                       self.face_swapper_input_size*self.scale_factor), borderValue=0.0)
         fake_diff = bgr_fake.astype(np.float32) - aimg.astype(np.float32)
         fake_diff = np.abs(fake_diff).mean(axis=2)
         fake_diff[:2,:] = 0
@@ -172,6 +175,7 @@ class Refacer:
         fake_diff[:,-2:] = 0
         IM = cv2.invertAffineTransform(M)
         img_white = np.full((aimg.shape[0],aimg.shape[1]), 255, dtype=np.float32)
+        bgr_fake = self.esrgan_model.get(bgr_fake_temp)
         bgr_fake = cv2.warpAffine(bgr_fake, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
         img_white = cv2.warpAffine(img_white, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
         fake_diff = cv2.warpAffine(fake_diff, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
