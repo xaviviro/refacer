@@ -14,6 +14,7 @@ RUN pip install nvidia-tensorrt
 RUN git clone https://github.com/xaviviro/refacer && cd refacer && pip install -r requirements-GPU.txt
 
 WORKDIR /refacer
+COPY inswapper_128.onnx /refacer/.
 
 # Test following commands in container to make sure GPU stuff works
 # nvidia-smi
