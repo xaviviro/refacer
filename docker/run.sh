@@ -7,6 +7,7 @@
 # or https://1drv.ms/u/s!AsHA3Xbnj6uAgxhb_tmQ7egHACOR?e=CPoThO
 # or https://civitai.com/models/80324?modelVersionId=85159
 
+docker stop -t 0 refacer
 docker build -t refacer -f Dockerfile.nvidia . && \
-    docker run --rm -v $(pwd)/out:/refacer/out -p 7860:7860 --gpus all refacer python3 app.py --server_name 0.0.0.0 && \
-    sleep 1 && google-chrome --new-window "http://127.0.0.1:7860" &
+    docker run --rm --name refacer -v $(pwd)/..:/refacer -p 7860:7860 --gpus all refacer python3 app.py --server_name 0.0.0.0 &
+sleep 2 && google-chrome --new-window "http://127.0.0.1:7860" &
