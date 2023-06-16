@@ -1,0 +1,20 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+# Always use UTC on a server
+RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+
+RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y python3 python3-pip python3-tk git ffmpeg nvidia-cuda-toolkit nvidia-container-runtime libnvidia-decode-525-server wget unzip
+RUN wget https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -O /tmp/buffalo_l.zip && \
+        mkdir -p /root/.insightface/models/buffalo_l && \
+        cd /root/.insightface/models/buffalo_l && \
+        unzip /tmp/buffalo_l.zip && \
+        rm -f /tmp/buffalo_l.zip
+
+RUN pip install nvidia-tensorrt
+RUN git clone https://github.com/xaviviro/refacer && cd refacer && pip install -r requirements-GPU.txt
+
+WORKDIR /refacer
+
+# Test following commands in container to make sure GPU stuff works
+# nvidia-smi
+# python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
