@@ -155,15 +155,18 @@ class Refacer:
             max_num=1
         
         faces = self.__get_faces(frame,max_num=max_num)
-        for face in faces:
-            if self.first_face:
+        if self.first_face:
+            for face in faces:
                 frame = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=True)
                 break
-            else:
-                for rep_face in self.replacement_faces:
-                    sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
+        else:
+            for rep_face in self.replacement_faces:
+                for i in range(len(faces) - 1, -1, -1):
+                    sim = self.rec_app.compute_sim(rep_face[0], faces[i].embedding)
                     if sim>=rep_face[2]:
-                        frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
+                        frame = self.face_swapper.get(frame, faces[i], rep_face[1], paste_back=True)
+                        del faces[i]
+                        break
         return frame
 
     def __check_video_has_audio(self,video_path):
