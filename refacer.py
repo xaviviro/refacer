@@ -250,7 +250,7 @@ class Refacer:
             self.upscale_en = True
             model_path = osp.join('models_ESRGAN',self.upscaler_model)
             sess_upsk = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
-            self.esrgan_model = ESRGAN(sess_upsk, tile_size = self.face_swapper_input_size, prepad=0)
+            self.esrgan_model = ESRGAN(sess_upsk)
         
         self.__check_video_has_audio(video_path)
         output_video_path = os.path.join('out',Path(video_path).name)
