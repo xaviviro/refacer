@@ -21,7 +21,7 @@ from insightface.utils.storage import ensure_available
 import re
 import subprocess
 import numpy as np
-from ESRGANONNX import ESRGAN
+from esrgan_onnx import ESRGAN
 
 class RefacerMode(Enum):
      CPU, CUDA, COREML, TENSORRT = range(1, 5)
@@ -98,11 +98,6 @@ class Refacer:
         self.face_swapper_input_size = self.face_swapper.input_size[0]
         #print("INSwapper resolution = ",self.face_swapper_input_size)
 
-        model_path = 'TGHQFace8x_500k-fp32.onnx'
-        sess_upsk = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
-        self.scale_factor = 8
-        self.tile_size = 128
-        self.esrgan_model = ESRGAN(model_path,sess_upsk, tile_size = self.tile_size, scale = self.scale_factor)
 
     def prepare_faces(self, faces):
         self.replacement_faces=[]
@@ -160,8 +155,8 @@ class Refacer:
         return ret
 
     def paste_upscale(self, bgr_fake, M, img):
+        bgr_fake_upscaled, self.scale_factor = self.esrgan_model.get(bgr_fake)
         M = M * self.scale_factor
-        bgr_fake_temp = bgr_fake
         bgr_fake = cv2.resize(bgr_fake, (self.face_swapper_input_size*self.scale_factor, 
                                          self.face_swapper_input_size*self.scale_factor), interpolation = cv2.INTER_LINEAR )
         target_img = img
@@ -175,8 +170,7 @@ class Refacer:
         fake_diff[:,-2:] = 0
         IM = cv2.invertAffineTransform(M)
         img_white = np.full((aimg.shape[0],aimg.shape[1]), 255, dtype=np.float32)
-        bgr_fake = self.esrgan_model.get(bgr_fake_temp)
-        bgr_fake = cv2.warpAffine(bgr_fake, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
+        bgr_fake = cv2.warpAffine(bgr_fake_upscaled, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
         img_white = cv2.warpAffine(img_white, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
         fake_diff = cv2.warpAffine(fake_diff, IM, (target_img.shape[1], target_img.shape[0]), borderValue=0.0)
         img_white[img_white>20] = 255
@@ -221,15 +215,25 @@ class Refacer:
         faces = self.__get_faces(frame,max_num=max_num)
         for face in faces:
             if self.first_face:
-                bgr_fake, M = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=False)
-                frame = self.paste_upscale(bgr_fake,M,frame)
+                if not self.upscale_en: 
+                    #print('\nRun native paste_back')
+                    frame = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=True)
+                else: 
+                    #print('\nRun upscale')
+                    bgr_fake, M = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=False)
+                    frame = self.paste_upscale(bgr_fake,M,frame)
                 break
             else:
                 for rep_face in self.replacement_faces:
                     sim = self.rec_app.compute_sim(rep_face[0], face.embedding)
                     if sim>=rep_face[2]:
-                        bgr_fake, M = self.face_swapper.get(frame, face, rep_face[1], paste_back=False)
-                        frame = self.paste_upscale(bgr_fake,M,frame)
+                        if not self.upscale_en: 
+                            #print('\nRun native paste_back')
+                            frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
+                        else: 
+                            #print('\nRun upscale')
+                            bgr_fake, M = self.face_swapper.get(frame, face, rep_face[1], paste_back=False)
+                            frame = self.paste_upscale(bgr_fake,M,frame)
         return frame
 
     def __check_video_has_audio(self,video_path):
@@ -239,7 +243,15 @@ class Refacer:
         if audio_stream is not None:
             self.video_has_audio = True
         
-    def reface(self, video_path, faces):
+    def reface(self, video_path, faces, upscaler):
+        self.upscale_en = False
+        self.upscaler_model=upscaler
+        if upscaler != 'None': 
+            self.upscale_en = True
+            model_path = osp.join('models_ESRGAN',self.upscaler_model)
+            sess_upsk = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
+            self.esrgan_model = ESRGAN(sess_upsk, tile_size = self.face_swapper_input_size, prepad=0)
+        
         self.__check_video_has_audio(video_path)
         output_video_path = os.path.join('out',Path(video_path).name)
         self.prepare_faces(faces)
