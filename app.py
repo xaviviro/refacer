@@ -2,6 +2,7 @@ import gradio as gr
 from refacer import Refacer
 import argparse
 import ngrok
+import os
 
 parser = argparse.ArgumentParser(description='Refacer')
 parser.add_argument("--max_num_faces", type=int, help="Max number of faces on UI", default=5)
@@ -51,6 +52,7 @@ def run(*vars):
     origins=vars[1:(num_faces+1)]
     destinations=vars[(num_faces+1):(num_faces*2)+1]
     thresholds=vars[(num_faces*2)+1:]
+    upscaler=vars[-1]
 
     faces = []
     for k in range(0,num_faces):
@@ -61,11 +63,15 @@ def run(*vars):
                 'threshold':thresholds[k]
             })
 
-    return refacer.reface(video_path,faces)
+    return refacer.reface(video_path,faces,upscaler)
 
 origin = []
 destination = []
 thresholds = []
+upscaler = []
+upscaler_models = ['None']
+upscaler_models += [file for file in os.listdir('upscaler_models') if file.endswith('.onnx')]
+print(upscaler_models)
 
 with gr.Blocks() as demo:
     with gr.Row():
@@ -82,9 +88,11 @@ with gr.Blocks() as demo:
             with gr.Row():
                 thresholds.append(gr.Slider(label="Threshold",minimum=0.0,maximum=1.0,value=0.2))
     with gr.Row():
+        upscaler.append(gr.Radio(label="Face upscaler", choices=upscaler_models, value=upscaler_models[0], interactive=True))
+    with gr.Row():
         button=gr.Button("Reface", variant="primary")
 
-    button.click(fn=run,inputs=[video]+origin+destination+thresholds,outputs=[video2])
+    button.click(fn=run,inputs=[video]+origin+destination+thresholds+upscaler,outputs=[video2])
     
 if args.ngrok is not None:
     connect(args.ngrok, args.server_port, {'region': args.ngrok_region, 'authtoken_from_env': False})

@@ -20,6 +20,9 @@ from insightface.app.common import Face
 from insightface.utils.storage import ensure_available
 import re
 import subprocess
+import numpy as np
+from esrgan_onnx import ESRGAN
+from gfpgan_onnx import GFPGAN
 
 class RefacerMode(Enum):
      CPU, CUDA, COREML, TENSORRT = range(1, 5)
@@ -93,6 +96,10 @@ class Refacer:
         model_path = 'inswapper_128.onnx'
         sess_swap = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
         self.face_swapper = INSwapper(model_path,sess_swap)
+        self.face_swapper_input_size = self.face_swapper.input_size[0]
+        #print("INSwapper resolution = ",self.face_swapper_input_size)
+
+
 
     def prepare_faces(self, faces):
         self.replacement_faces=[]
@@ -149,10 +156,58 @@ class Refacer:
             ret.append(face)
         return ret
 
+    def paste_upscale(self, bgr_fake, M, img):
+        upsk_face, self.scale_factor = self.face_upscaler_model.get(bgr_fake)
+        M_scale = M * self.scale_factor
+        target_img = img
+        IM = cv2.invertAffineTransform(M_scale)
+
+        face_matte = np.full((target_img.shape[0],target_img.shape[1]), 255, dtype=np.uint8)
+        
+        ##Generate white square sized as a upsk_face
+        img_matte = np.full((upsk_face.shape[0],upsk_face.shape[1]), 255, dtype=np.uint8) 
+        ##Transform white square back to target_img
+        img_matte = cv2.warpAffine(img_matte, IM, (target_img.shape[1], target_img.shape[0]), flags=cv2.INTER_NEAREST, borderValue=0.0) 
+        ##Blacken the edges of face_matte by 1 pixels (so the mask in not expanded on the image edges)
+        img_matte[:1,:] = img_matte[-1:,:] = img_matte[:,:1] = img_matte[:,-1:] = 0 
+        #Detect the affine transformed white area
+        mask_h_inds, mask_w_inds = np.where(img_matte==255) 
+        #Calculate the size (and diagonal size) of transformed white area width and height boundaries
+        mask_h = np.max(mask_h_inds) - np.min(mask_h_inds) 
+        mask_w = np.max(mask_w_inds) - np.min(mask_w_inds)
+        mask_size = int(np.sqrt(mask_h*mask_w))
+        #Calculate the kernel size for eroding img_matte by kernel (insightface empirical guess for best size was max(mask_size//10,10))
+        k = max(mask_size//12, 8)
+        kernel = np.ones((k,k),np.uint8)
+        img_matte = cv2.erode(img_matte,kernel,iterations = 1)
+        #Calculate the kernel size for blurring img_matte by blur_size (insightface empirical guess for best size was max(mask_size//20, 5))
+        k = max(mask_size//24, 4) 
+        kernel_size = (k, k)
+        blur_size = tuple(2*i+1 for i in kernel_size)
+        img_matte = cv2.GaussianBlur(img_matte, blur_size, 0)
+        
+        #Normalize images to float values and reshape
+        img_matte = img_matte.astype(np.float32)/255
+        face_matte = face_matte.astype(np.float32)/255
+        img_matte = np.minimum(face_matte, img_matte)
+        img_matte = np.reshape(img_matte, [img_matte.shape[0],img_matte.shape[1],1]) 
+        ##Transform upcaled face back to target_img
+        paste_face = cv2.warpAffine(upsk_face, IM, (target_img.shape[1], target_img.shape[0]), borderMode=cv2.BORDER_REPLICATE) 
+        ##Re-assemble image
+        paste_face = img_matte * paste_face
+        paste_face = paste_face + (1-img_matte) * target_img.astype(np.float32) 
+        return paste_face.astype(np.uint8)
+
     def process_first_face(self,frame):
         faces = self.__get_faces(frame,max_num=1)
         if len(faces) != 0:
-            frame = self.face_swapper.get(frame, faces[0], self.replacement_faces[0][1], paste_back=True)
+            if not self.upscale_en: 
+                #print('\nRun native paste_back')
+                frame = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=True)
+            else: 
+                #print('\nRun upscale')
+                bgr_fake, M = self.face_swapper.get(frame, face, self.replacement_faces[0][1], paste_back=False)
+                frame = self.paste_upscale(bgr_fake,M,frame)
         return frame
 
     def process_faces(self,frame):
@@ -161,7 +216,13 @@ class Refacer:
             for i in range(len(faces) - 1, -1, -1):
                 sim = self.rec_app.compute_sim(rep_face[0], faces[i].embedding)
                 if sim>=rep_face[2]:
-                    frame = self.face_swapper.get(frame, faces[i], rep_face[1], paste_back=True)
+                    if not self.upscale_en: 
+                        #print('\nRun native paste_back')
+                        frame = self.face_swapper.get(frame, face, rep_face[1], paste_back=True)
+                    else: 
+                        #print('\nRun upscale')
+                        bgr_fake, M = self.face_swapper.get(frame, face, rep_face[1], paste_back=False)
+                        frame = self.paste_upscale(bgr_fake,M,frame)
                     del faces[i]
                     break
         return frame
@@ -182,7 +243,19 @@ class Refacer:
             for result in results:
                 output.write(result)
 
-    def reface(self, video_path, faces):
+    def reface(self, video_path, faces, upscaler):
+        self.upscale_en = False
+        if upscaler != 'None': 
+            self.upscale_en = True
+            model_path = osp.join('upscaler_models',upscaler)
+            sess_upsk = rt.InferenceSession(model_path, self.sess_options, providers=self.providers)
+            if 'GFPGAN' in str(upscaler):
+                self.face_upscaler_model = GFPGAN(sess_upsk)
+                #print('\nGFPGAN upscaling.')
+            else:
+                self.face_upscaler_model = ESRGAN(sess_upsk)
+                #print('\nESRGAN upscaling.')        
+        #else: print('\nNot upscaling.')     
         self.__check_video_has_audio(video_path)
         output_video_path = os.path.join('out',Path(video_path).name)
         self.prepare_faces(faces)
