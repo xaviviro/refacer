@@ -5,6 +5,7 @@ import os.path as osp
 import argparse
 import cv2
 import numpy as np
+import torch
 import onnxruntime
 from scrfd import SCRFD
 from arcface_onnx import ArcFaceONNX

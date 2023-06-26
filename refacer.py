@@ -1,11 +1,11 @@
 import cv2
+import torch
 import onnxruntime as rt
 import sys
 from insightface.app import FaceAnalysis
 sys.path.insert(1, './recognition')
 from scrfd import SCRFD
 from arcface_onnx import ArcFaceONNX
-import os.path as osp
 import os
 from pathlib import Path
 from tqdm import tqdm
