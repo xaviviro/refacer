@@ -1,5 +1,5 @@
 import cv2
-import torch
+import torch # hack to use onnxruntime with cuda
 import onnxruntime as rt
 import sys
 from insightface.app import FaceAnalysis

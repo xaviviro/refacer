@@ -2,7 +2,7 @@
 from __future__ import division
 import datetime
 import numpy as np
-import torch
+import torch # hack to use onnxruntime with cuda
 import onnxruntime
 import os
 import os.path as osp
