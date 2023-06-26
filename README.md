@@ -33,7 +33,7 @@ The application is compatible with both CPU and GPU (Nvidia CUDA) environments, 
 
 Ensure that you have `ffmpeg` installed and correctly configured. There are many guides available on the internet to help with this. Here are a few (note: I did not create these guides):
 
-- [How to Install FFmpeg](https://www.hostinger.com/tutorials/how-to-install-ffmpe)
+- [How to Install FFmpeg](https://www.hostinger.com/tutorials/how-to-install-ffmpeg)
 
 
 ## Installation
