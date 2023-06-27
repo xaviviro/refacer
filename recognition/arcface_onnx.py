@@ -6,7 +6,6 @@
 
 import numpy as np
 import cv2
-import torch # hack to use onnxruntime with cuda
 import onnx
 import onnxruntime
 import face_align
