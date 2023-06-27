@@ -1,0 +1,2 @@
+ESRGAN models can have any filename
+GFPGAN models should be named GFPGAN***
